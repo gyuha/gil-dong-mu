@@ -24,7 +24,10 @@ func _process(delta: float) -> void:
 		return
 	var to_target := target.global_position - global_position
 	if to_target.length() > CONTACT_RADIUS:
-		position += to_target.normalized() * SPEED * delta
+		var speed := SPEED
+		if target.has_method("aura_speed_multiplier"):
+			speed *= target.aura_speed_multiplier(global_position)
+		position += to_target.normalized() * speed * delta
 	elif _contact_timer <= 0.0:
 		target.take_damage(CONTACT_DAMAGE)
 		_contact_timer = CONTACT_INTERVAL

@@ -28,8 +28,9 @@ func _process(delta: float) -> void:
 	if _spawn_timer <= 0.0:
 		_spawn_timer = SPAWN_INTERVAL
 		_spawn_japgwi()
-	hud.text = "HP %d/%d   Lv %d   XP %d/%d" % [
-		munyeo.hp, munyeo.max_hp, munyeo.level, munyeo.xp, munyeo.xp_to_next(),
+	hud.text = "HP %d/%d   MP %d/%d   Lv %d   XP %d/%d" % [
+		munyeo.hp, munyeo.max_hp, int(munyeo.mp), int(munyeo.max_mp),
+		munyeo.level, munyeo.xp, munyeo.xp_to_next(),
 	]
 
 
