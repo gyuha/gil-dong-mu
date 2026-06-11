@@ -1,4 +1,6 @@
 # 스모크용 자동 조종 — 키 입력(WASD)을 주입해 무녀를 가장 가까운 혼불로 보낸다.
+# 동료는 첫 프레임에 제거한다 — 혼불은 전달형이라 동료가 곁에 있으면 무녀에게
+# 경험치가 남지 않으므로, "동료 없이 수집 → 지연 흡수 → 무녀 레벨업" 경로를 검증한다.
 # 무녀가 Lv 2에 도달하면 성공(종료코드 0), 제한 프레임 초과 시 실패(1).
 extends Node
 
@@ -7,6 +9,7 @@ const DEADZONE := 8.0
 
 var _frames := 0
 var _held := {}  # physical keycode → pressed
+var _companions_removed := false
 
 
 func _ready() -> void:
@@ -17,6 +20,11 @@ func _process(_delta: float) -> void:
 	_frames += 1
 	var munyeo: Node2D = get_node_or_null("/root/Main/Munyeo")
 	if munyeo == null:
+		return
+	if not _companions_removed:
+		_companions_removed = true
+		for companion in get_tree().get_nodes_in_group("companion"):
+			companion.free()
 		return
 	if munyeo.level >= 2:
 		print("SMOKE OK — Lv %d (frame %d, xp %d, hp %d)" % [

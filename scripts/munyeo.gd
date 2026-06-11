@@ -1,6 +1,7 @@
-# 무녀 — 플레이어 조작(WASD/방향키), 자동 주술(혼불 부적), HP, 혼불 수집·경험치,
+# 무녀 — 플레이어 조작(WASD/방향키), 자동 주술(혼불 부적), HP, 혼불 수집(보유 적립),
 # 오라(영역 내 적 감속 + 동료 회복), MP(자연 회복), 밀쳐내기(스페이스, MP 소비),
-# 혼불 분배(보유 혼불을 근접 동료에게), 명령(1~4키 — 동료 성향 전환).
+# 혼불 전달(근접 동료에게 전부 — 무녀 몫 없음, 부재 시 지연 후 무녀가 흡수해 경험치),
+# 명령(1~4키 — 동료 성향 전환).
 # 레벨업 시 leveled_up 시그널 — main이 받아 드래프트 큐에 적재한다(S5).
 extends Node2D
 
@@ -24,7 +25,8 @@ const ARENA := Vector2(1280, 720)
 const AURA_SLOW_MULTIPLIER := 0.5
 const AURA_LEVEL_DIFF_SCALE := 1.0  # 레벨차 정밀 보정 자리 — Non-goal, 상수만 둔다.
 
-const SHARE_RADIUS := 90.0  # 이 거리 안 동료에게 보유 혼불을 자동 분배
+const SHARE_RADIUS := 90.0  # 이 거리 안 동료에게 보유 혼불을 자동 전달
+const ABSORB_DELAY := 3.0  # 반경 내 동료 부재 시 이 시간 뒤 무녀가 보유 혼불을 흡수
 
 const REPEL_COST := 30.0
 const REPEL_RADIUS := 160.0
@@ -38,7 +40,7 @@ var mp := max_mp
 var level := 1
 var xp := 0
 var command := Command.NEARBY
-var soulfire_stock := 0  # 동료에게 나눠줄 보유 혼불
+var soulfire_stock := 0  # 보유 혼불 — 근접 동료에게 전달되거나 지연 후 무녀가 흡수
 
 # 드래프트로 강화되는 수치 — DraftPool.apply 가 다루는 키와 1:1 대응.
 var talisman_count := 1
@@ -50,6 +52,7 @@ var mp_regen_rate := 10.0  # 초당 회복량
 var command_range_bonus := 1.0  # 명령 강화 — 동료 교전·추적 범위 배율
 
 var _attack_timer := 0.0
+var _absorb_timer := 0.0  # 동료 부재 상태로 혼불을 보유한 누적 시간
 var _repel_key_held := false
 var _repel_flash := 0.0
 
@@ -58,7 +61,7 @@ func _process(delta: float) -> void:
 	_move(delta)
 	_auto_attack(delta)
 	_collect_soulfires()
-	_share_soulfires()
+	_share_soulfires(delta)
 	_heal_companions(delta)
 	mp = Mp.regen(mp, max_mp, mp_regen_rate, delta)
 	_handle_repel_input()
@@ -176,27 +179,32 @@ func _auto_attack(delta: float) -> void:
 		get_parent().add_child(talisman)
 
 
+# 혼불 수집 — 보유량 적립만 한다(무녀 경험치는 지연 흡수 때만).
 func _collect_soulfires() -> void:
 	for soulfire in get_tree().get_nodes_in_group("soulfire"):
 		if global_position.distance_to(soulfire.global_position) <= PICKUP_RADIUS:
-			gain_xp(soulfire.xp_value)
 			soulfire_stock += soulfire.xp_value
 			soulfire.queue_free()
 
 
-# 혼불 분배 — 보유 혼불을 SHARE_RADIUS 안 가장 가까운 동료에게 전부 준다.
-func _share_soulfires() -> void:
-	if soulfire_stock <= 0:
-		return
+# 혼불 전달 — SHARE_RADIUS 안 가장 가까운 동료에게 전부 준다(무녀 몫 없음).
+# 반경 내 동료가 없으면 ABSORB_DELAY 뒤 무녀가 흡수해 경험치로 삼는다.
+func _share_soulfires(delta: float) -> void:
 	var companions := get_tree().get_nodes_in_group("companion")
 	var distances: Array = []
 	for companion in companions:
 		distances.append(global_position.distance_to(companion.global_position))
-	var result := SoulfireShare.distribute(soulfire_stock, distances, SHARE_RADIUS)
-	if result["index"] == -1:
-		return
-	companions[result["index"]].gain_xp(result["given"])
-	soulfire_stock = result["stock"]
+	var transfer := SoulfireShare.distribute(soulfire_stock, distances, SHARE_RADIUS)
+	if transfer["index"] != -1:
+		companions[transfer["index"]].gain_xp(transfer["given"])
+	soulfire_stock = transfer["stock"]
+	var absorb := SoulfireShare.absorb_tick(
+		soulfire_stock, _absorb_timer, delta, ABSORB_DELAY,
+	)
+	_absorb_timer = absorb["timer"]
+	soulfire_stock = absorb["stock"]
+	if absorb["absorbed"] > 0:
+		gain_xp(absorb["absorbed"])
 
 
 # 오라 회복 — aura_radius 안의 동료를 초당 aura_heal_rate 만큼 회복.
