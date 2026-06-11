@@ -1,0 +1,11 @@
+# Godot 4
+.godot/
+
+# forge volatile state (추적 대상: .forge/adr/, .forge/retro/, .forge/CONTEXT.md, .forge/config.json, .forge/codebase/)
+.forge/plan.md
+.forge/run.md
+.forge/STATUS.md
+.forge/backlog/
+.forge/executed/
+.forge/done/
+.forge/quick/
