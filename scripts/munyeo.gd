@@ -82,7 +82,7 @@ func repel() -> bool:
 	mp = result["mp"]
 	if not result["ok"]:
 		return false
-	for enemy in get_tree().get_nodes_in_group("japgwi"):
+	for enemy in get_tree().get_nodes_in_group("enemy"):
 		var offset: Vector2 = Aura.repel_offset(
 			global_position, enemy.global_position, REPEL_RADIUS, REPEL_DISTANCE,
 		)
@@ -159,7 +159,7 @@ func _auto_attack(delta: float) -> void:
 	_attack_timer -= delta
 	if _attack_timer > 0.0:
 		return
-	var enemies := get_tree().get_nodes_in_group("japgwi")
+	var enemies := get_tree().get_nodes_in_group("enemy")
 	var positions: Array = []
 	for enemy in enemies:
 		positions.append(enemy.global_position)

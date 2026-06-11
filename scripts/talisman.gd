@@ -1,4 +1,4 @@
-# 혼불 부적 — 무녀의 자동 주술 투사체. 직선 비행, 잡귀 명중 시 피해.
+# 혼불 부적 — 무녀의 자동 주술 투사체. 직선 비행, 적(잡귀·창귀) 명중 시 피해.
 # pierce > 0 이면 그만큼 적을 더 뚫고 지나간다(드래프트 강화).
 extends Node2D
 
@@ -19,7 +19,7 @@ func _process(delta: float) -> void:
 	if _age >= LIFETIME:
 		queue_free()
 		return
-	for enemy in get_tree().get_nodes_in_group("japgwi"):
+	for enemy in get_tree().get_nodes_in_group("enemy"):
 		if _hit.has(enemy.get_instance_id()):
 			continue
 		if global_position.distance_to(enemy.global_position) <= HIT_RADIUS:

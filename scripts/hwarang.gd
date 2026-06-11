@@ -12,6 +12,6 @@ func _init() -> void:
 	body_color = Color(0.95, 0.75, 0.25)
 
 
-func _ready() -> void:
-	super()
-	add_to_group("hwarang")
+# "hwarang" 그룹도 전투 그룹 — 쓰러지면 어그로 대상에서 빠지고, 구출되면 돌아온다.
+func _combat_groups() -> Array:
+	return ["companion", "hwarang"]

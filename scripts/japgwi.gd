@@ -19,6 +19,7 @@ var _contact_timer := 0.0
 
 func _ready() -> void:
 	add_to_group("japgwi")
+	add_to_group("enemy")  # 아군 공격·밀쳐내기가 노리는 공통 적 그룹
 
 
 func _process(delta: float) -> void:

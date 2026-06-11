@@ -1,4 +1,4 @@
-# 화살 — 활잡이의 원거리 투사체. 직선 비행, 잡귀 명중 시 피해.
+# 화살 — 활잡이의 원거리 투사체. 직선 비행, 적(잡귀·창귀) 명중 시 피해.
 extends Node2D
 
 const SPEED := 480.0
@@ -20,7 +20,7 @@ func _process(delta: float) -> void:
 	if _age >= LIFETIME:
 		queue_free()
 		return
-	for enemy in get_tree().get_nodes_in_group("japgwi"):
+	for enemy in get_tree().get_nodes_in_group("enemy"):
 		if global_position.distance_to(enemy.global_position) <= HIT_RADIUS:
 			enemy.take_damage(damage)
 			queue_free()

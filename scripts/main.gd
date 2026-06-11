@@ -1,9 +1,10 @@
-# 메인 오케스트레이션 — 무녀·동료 배치(밤 시작 시), 잡귀 주기 스폰, HUD 갱신,
+# 메인 오케스트레이션 — 무녀·동료 배치(밤 시작 시), 잡귀·창귀 주기 스폰, HUD 갱신,
 # 레벨업 드래프트(일시정지 + 3지선다 + 큐 일괄 처리, ADR-0002).
 extends Node2D
 
 const Munyeo = preload("res://scripts/munyeo.gd")
 const Japgwi = preload("res://scripts/japgwi.gd")
+const Changgwi = preload("res://scripts/changgwi.gd")
 const Hwarang = preload("res://scripts/hwarang.gd")
 const Archer = preload("res://scripts/archer.gd")
 const Command = preload("res://scripts/logic/command.gd")
@@ -12,14 +13,18 @@ const DraftQueue = preload("res://scripts/logic/draft_queue.gd")
 const DraftUi = preload("res://scripts/draft_ui.gd")
 
 const SPAWN_INTERVAL := 1.5
+const CHANGGWI_FIRST_DELAY := 10.0  # 첫 창귀까지 여유 — 초반에 전선이 자리잡을 시간
+const CHANGGWI_INTERVAL := 8.0
 const SPAWN_MARGIN := 40.0
 const ARENA := Vector2(1280, 720)
 const DRAFT_CHOICES := 3
 
 var munyeo: Node2D
 var hud: Label
+var _companions: Array = []  # HUD용 — 쓰러진 동료는 그룹에서 빠지므로 직접 추적
 var draft_ui: CanvasLayer
 var _spawn_timer := 0.0
+var _changgwi_timer := CHANGGWI_FIRST_DELAY
 var _draft_queue := DraftQueue.new()
 var _current_subject: Node2D
 var _current_options: Array = []
@@ -48,16 +53,27 @@ func _process(delta: float) -> void:
 	if _spawn_timer <= 0.0:
 		_spawn_timer = SPAWN_INTERVAL
 		_spawn_japgwi()
+	_changgwi_timer -= delta
+	if _changgwi_timer <= 0.0:
+		_changgwi_timer = CHANGGWI_INTERVAL
+		_spawn_changgwi()
 	var text := "HP %d/%d   MP %d/%d   Lv %d   XP %d/%d   혼불 %d   명령[1~4] %s" % [
 		munyeo.hp, munyeo.max_hp, int(munyeo.mp), int(munyeo.max_mp),
 		munyeo.level, munyeo.xp, munyeo.xp_to_next(),
 		munyeo.soulfire_stock, Command.NAMES[munyeo.command],
 	]
-	for companion in get_tree().get_nodes_in_group("companion"):
-		text += "\n%s   Lv %d   XP %d   HP %d/%d" % [
-			companion.display_name, companion.level, companion.xp,
-			int(companion.hp), int(companion.max_hp),
-		]
+	for companion in _companions:
+		if not is_instance_valid(companion):
+			continue  # 구출 실패로 이탈한 동료
+		if companion.downed:
+			text += "\n%s   쓰러짐! %.1f초 — 근접해 구출하라" % [
+				companion.display_name, companion.down_time_left(),
+			]
+		else:
+			text += "\n%s   Lv %d   XP %d   HP %d/%d" % [
+				companion.display_name, companion.level, companion.xp,
+				int(companion.hp), int(companion.max_hp),
+			]
 	hud.text = text
 
 
@@ -68,6 +84,7 @@ func _spawn_companion(script: GDScript, offset: Vector2) -> void:
 	companion.position = munyeo.position + offset
 	companion.leveled_up.connect(_on_leveled_up.bind(companion))
 	add_child(companion)
+	_companions.append(companion)
 
 
 # 레벨업 드래프트 — 레벨업마다 큐에 적재하고, 정지 중이 아니면 정지 후 첫 드래프트를 연다.
@@ -108,6 +125,13 @@ func _spawn_japgwi() -> void:
 	japgwi.target = munyeo
 	japgwi.position = _random_edge_position()
 	add_child(japgwi)
+
+
+func _spawn_changgwi() -> void:
+	var changgwi := Changgwi.new()
+	changgwi.munyeo = munyeo
+	changgwi.position = _random_edge_position()
+	add_child(changgwi)
 
 
 func _random_edge_position() -> Vector2:
