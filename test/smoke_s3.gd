@@ -24,9 +24,17 @@ class Monitor extends Node:
 	var _dist_before := 0.0
 	var _slow_ok := false
 	var _check_wait := 0
+	var _companions_removed := false
 
 	func _process(_delta: float) -> void:
 		_frames += 1
+		# S4부터 배치되는 동료는 첫 프레임에 제거 — 이 스모크는 무녀 단독 오라·밀쳐내기
+		# 검증이 목적이고, 동료가 있으면 잡귀가 오라에 살아서 도달하지 못한다.
+		if not _companions_removed:
+			_companions_removed = true
+			for companion in get_tree().get_nodes_in_group("companion"):
+				companion.free()
+			return
 		if _frames > MAX_FRAMES:
 			printerr("SMOKE FAIL — 제한 프레임 초과 (phase %s)" % _phase)
 			get_tree().quit(1)
