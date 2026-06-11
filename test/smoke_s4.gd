@@ -1,6 +1,6 @@
 # S4 스모크 — 메인 씬을 띄우고 자동 조종으로
 # (1) 혼불 수집→동료 근접 분배로 동료가 Lv 2에 오르는지,
-# (2) 활잡이가 화살(원거리)을 쏘고 화랑이 근접 교전하는지,
+# (2) 탈 쓴 퇴마사가 광역 베기로 다수 적을 동시 타격하고 화랑이 근접 교전하는지,
 # (3) 모여라(키 4) 명령에 동료들이 무녀 곁으로 집결하는지 헤드리스로 검증한다.
 # 실행: godot --headless --fixed-fps 60 --script test/smoke_s4.gd
 # (test_runner가 수집하는 test_*.gd 가 아니므로 단위 테스트에는 포함되지 않는다.)
@@ -23,7 +23,7 @@ class Monitor extends Node:
 	var _frames := 0
 	var _phase := "level_companion"  # level_companion → rally → check_rally
 	var _held := {}
-	var _arrow_seen := false
+	var _sweep_seen := false
 	var _melee_seen := false
 	var _rally_frames := 0
 
@@ -33,8 +33,8 @@ class Monitor extends Node:
 	func _process(_delta: float) -> void:
 		_frames += 1
 		if _frames > MAX_FRAMES:  # pause 분기보다 먼저 — 결과 화면(S7) 정지에서 행 방지
-			printerr("SMOKE FAIL — 제한 프레임 초과 (phase %s, arrow %s, melee %s)" % [
-				_phase, str(_arrow_seen), str(_melee_seen),
+			printerr("SMOKE FAIL — 제한 프레임 초과 (phase %s, sweep %s, melee %s)" % [
+				_phase, str(_sweep_seen), str(_melee_seen),
 			])
 			get_tree().quit(1)
 			return
@@ -62,10 +62,17 @@ class Monitor extends Node:
 			"check_rally":
 				_check_rally(munyeo, companions)
 
-	# 성향 관찰 — 화살 존재(활잡이 원거리), 화랑이 잡귀와 근접 교전.
+	# 성향 관찰 — 퇴마사의 광역 베기 다중 타격(한 베기에 2마리 이상), 화랑의 근접 교전.
 	func _observe_traits(companions: Array) -> void:
-		if not _arrow_seen and not get_tree().get_nodes_in_group("arrow").is_empty():
-			_arrow_seen = true
+		if not _sweep_seen:
+			for companion in companions:
+				if companion.get("last_sweep_hits") != null \
+						and companion.last_sweep_hits >= 2:
+					_sweep_seen = true
+					print("광역 베기 확인 — %s 동시 %d타 (frame %d)" % [
+						companion.display_name, companion.last_sweep_hits, _frames,
+					])
+					break
 		if _melee_seen:
 			return
 		for hwarang in get_tree().get_nodes_in_group("hwarang"):
@@ -76,11 +83,11 @@ class Monitor extends Node:
 					return
 
 	# 혼불을 주워(보유) 동료에게 다가가 분배 — 아무 동료나 Lv 2 도달까지.
-	# 성향(화살·근접 교전)까지 관찰돼야 모여라 단계로 넘어간다(모여라 후엔 교전 안 함).
+	# 성향(광역 베기·근접 교전)까지 관찰돼야 모여라 단계로 넘어간다(모여라 후엔 교전 안 함).
 	func _level_companion(munyeo: Node2D, companions: Array) -> void:
 		for companion in companions:
-			if companion.level >= 2 and _arrow_seen and _melee_seen:
-				print("분배 확인 — %s Lv %d (frame %d, arrow/melee 관찰됨)" % [
+			if companion.level >= 2 and _sweep_seen and _melee_seen:
+				print("분배 확인 — %s Lv %d (frame %d, sweep/melee 관찰됨)" % [
 					companion.display_name, companion.level, _frames,
 				])
 				_release_all()
@@ -116,7 +123,7 @@ class Monitor extends Node:
 		_rally_frames += 1
 		if _rally_frames < 10:  # 우연한 통과 방지 — 10프레임 유지 확인
 			return
-		print("SMOKE OK — 분배 레벨업 + 모여라 집결 + 화살/근접 성향 (frame %d)" % _frames)
+		print("SMOKE OK — 분배 레벨업 + 모여라 집결 + 광역 베기/근접 성향 (frame %d)" % _frames)
 		get_tree().quit(0)
 
 	func _nearest_in_group(origin: Node2D, group: String) -> Vector2:

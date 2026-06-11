@@ -1,7 +1,7 @@
 # S6 스모크 — 메인 씬을 띄우고 자동 조종으로
 # (1) 창귀가 스폰되어 체력이 가장 낮은 동료를 노리는지,
 # (2) 쓰러진 화랑에 무녀가 근접을 유지하면 구출되는지,
-# (3) 쓰러진 활잡이를 방치(멀리 이탈)하면 제한 시간 후 그 밤에서 빠지는지 검증한다.
+# (3) 쓰러진 퇴마사를 방치(멀리 이탈)하면 제한 시간 후 그 밤에서 빠지는지 검증한다.
 # 쓰러짐 자체는 take_damage(공개 API)로 강제한다 — 창귀 압박의 자연 발생은 수동 플레이 검증.
 # 실행: godot --headless --fixed-fps 60 --script test/smoke_s6.gd
 extends SceneTree
@@ -21,7 +21,7 @@ class Monitor extends Node:
 	var _phase := "observe_changgwi"  # → rescue_success → rescue_fail
 	var _held := {}
 	var _hwarang: Node2D
-	var _archer: Node2D
+	var _exorcist: Node2D
 	var _captured := false
 	var _forced := false
 
@@ -61,20 +61,20 @@ class Monitor extends Node:
 		for companion in get_tree().get_nodes_in_group("companion"):
 			if companion.display_name == "화랑":
 				_hwarang = companion
-			elif companion.display_name == "활잡이":
-				_archer = companion
-		_captured = _hwarang != null and _archer != null
+			elif companion.display_name == "탈 쓴 퇴마사":
+				_exorcist = companion
+		_captured = _hwarang != null and _exorcist != null
 
 	# 창귀가 등장하면, 그 순간 체력이 더 낮은 동료를 노리는지 확인한다.
 	func _observe_changgwi() -> void:
 		var changgwis := get_tree().get_nodes_in_group("changgwi")
 		if changgwis.is_empty():
 			return
-		if _hwarang.downed or _archer.downed:
+		if _hwarang.downed or _exorcist.downed:
 			return  # 둘 다 서 있을 때만 판정
-		if is_equal_approx(_hwarang.hp, _archer.hp):
+		if is_equal_approx(_hwarang.hp, _exorcist.hp):
 			return  # 동률은 다음 프레임에 재판정
-		var expected: Node2D = _archer if _archer.hp < _hwarang.hp else _hwarang
+		var expected: Node2D = _exorcist if _exorcist.hp < _hwarang.hp else _hwarang
 		var chase: Node2D = changgwis[0]._chase_target()
 		if chase != expected:
 			printerr("SMOKE FAIL — 창귀가 최저 체력 동료(%s)가 아닌 %s를 노림" % [
@@ -113,36 +113,36 @@ class Monitor extends Node:
 		_forced = false
 		_phase = "rescue_fail"
 
-	# 활잡이를 강제로 쓰러뜨리고 무녀를 떼어놓아 구출 실패(이탈)를 확인한다.
+	# 퇴마사를 강제로 쓰러뜨리고 무녀를 떼어놓아 구출 실패(이탈)를 확인한다.
 	# 무녀는 공격하지 않으므로(ADR-0003) 한곳에 머물면 잡귀에 깎여 죽는다 —
-	# 적과 활잡이를 피해 카이팅하고, 근접한 적은 밀쳐내기(비살상)로 떼어낸다.
+	# 적과 퇴마사를 피해 카이팅하고, 근접한 적은 밀쳐내기(비살상)로 떼어낸다.
 	func _rescue_fail(munyeo: Node2D) -> void:
 		if not _forced:
 			_forced = true
-			_archer.take_damage(9999)
-			print("활잡이 강제 쓰러짐 — 방치해 이탈을 기다린다 (frame %d)" % _frames)
-		if is_instance_valid(_archer) and _archer.downed:
+			_exorcist.take_damage(9999)
+			print("퇴마사 강제 쓰러짐 — 방치해 이탈을 기다린다 (frame %d)" % _frames)
+		if is_instance_valid(_exorcist) and _exorcist.downed:
 			_steer(munyeo, _kite_dest(munyeo))
 			_panic_repel(munyeo)
 			return
-		if is_instance_valid(_archer):
-			printerr("SMOKE FAIL — 방치했는데 활잡이가 구출돼버림")
+		if is_instance_valid(_exorcist):
+			printerr("SMOKE FAIL — 방치했는데 퇴마사가 구출돼버림")
 			get_tree().quit(1)
 			return
 		print("SMOKE OK — 창귀 타깃 + 구출 성공 + 구출 실패 이탈 (frame %d)" % _frames)
 		get_tree().quit(0)
 
-	# 회피 목적지 — 가까운 적들과 활잡이(구출 반경 침범 금지)의 반발 벡터 합으로 정한다.
+	# 회피 목적지 — 가까운 적들과 퇴마사(구출 반경 침범 금지)의 반발 벡터 합으로 정한다.
 	func _kite_dest(munyeo: Node2D) -> Vector2:
 		var push := Vector2.ZERO
 		for enemy in get_tree().get_nodes_in_group("enemy"):
 			var away: Vector2 = munyeo.global_position - enemy.global_position
 			if away.length() < 220.0:
 				push += away.normalized() * (220.0 - away.length())
-		if is_instance_valid(_archer):
-			var from_archer: Vector2 = munyeo.global_position - _archer.global_position
-			if from_archer.length() < 150.0:
-				push += from_archer.normalized() * 300.0
+		if is_instance_valid(_exorcist):
+			var from_exorcist: Vector2 = munyeo.global_position - _exorcist.global_position
+			if from_exorcist.length() < 150.0:
+				push += from_exorcist.normalized() * 300.0
 		if push == Vector2.ZERO:
 			return munyeo.global_position  # 위협 없음 — 제자리 대기
 		var dest: Vector2 = munyeo.global_position + push.normalized() * 200.0
