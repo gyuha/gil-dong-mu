@@ -15,12 +15,3 @@ static func nearest_index(origin: Vector2, positions: Array, max_range: float = 
 			best_dist = dist
 			best = i
 	return best
-
-
-# 부적 다발 발사 방향 — base를 중심으로 count발을 step 라디안 간격 부채꼴로 펼친다.
-static func spread_directions(base: Vector2, count: int, step: float = 0.15) -> Array:
-	var dirs := []
-	var center := (count - 1) / 2.0
-	for i in count:
-		dirs.append(base.normalized().rotated((i - center) * step))
-	return dirs

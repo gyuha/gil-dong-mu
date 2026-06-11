@@ -1,14 +1,14 @@
 # 드래프트(Draft) 선택지 풀 — 추첨과 업그레이드 적용 수치. 노드 비의존 순수 로직.
-# 무녀 풀: 주술(부적 수/관통/쿨다운), 오라, MP, 명령 강화. 동료 풀: 해당 동료의 스탯 강화.
-# 선택지는 {id, name, desc} 사전. id는 두 풀을 통틀어 유일하다.
+# 무녀 풀: 서포트 전용(ADR-0003) — 밀쳐내기/혼불 자석/이동, 오라, MP, 명령 강화.
+# 동료 풀: 해당 동료의 스탯 강화. 선택지는 {id, name, desc} 사전. id는 두 풀을 통틀어 유일하다.
 extends RefCounted
 
 
 static func munyeo_pool() -> Array:
 	return [
-		{"id": "talisman_count", "name": "부적 추가", "desc": "부적 +1발"},
-		{"id": "talisman_pierce", "name": "부적 관통", "desc": "관통 +1"},
-		{"id": "talisman_cooldown", "name": "주술 가속", "desc": "부적 쿨다운 -15%"},
+		{"id": "repel_radius", "name": "밀쳐내기 확장", "desc": "밀쳐내기 반경 +25%"},
+		{"id": "soulfire_magnet", "name": "혼불 자석", "desc": "혼불 자석 반경 +30%"},
+		{"id": "move_speed", "name": "경공", "desc": "이동속도 +10%"},
 		{"id": "aura_radius", "name": "오라 확장", "desc": "오라 반경 +20%"},
 		{"id": "aura_heal", "name": "오라 정화", "desc": "오라 회복 +3/s"},
 		{"id": "mp_mastery", "name": "내공 수양", "desc": "최대 MP +30, 회복 +2/s"},
@@ -46,12 +46,12 @@ static func roll(pool: Array, count: int, rng: RandomNumberGenerator) -> Array:
 static func apply(stats: Dictionary, option_id: String) -> Dictionary:
 	var s := stats.duplicate()
 	match option_id:
-		"talisman_count":
-			s["talisman_count"] = s["talisman_count"] + 1
-		"talisman_pierce":
-			s["talisman_pierce"] = s["talisman_pierce"] + 1
-		"talisman_cooldown":
-			s["attack_cooldown"] = s["attack_cooldown"] * 0.85
+		"repel_radius":
+			s["repel_radius"] = s["repel_radius"] * 1.25
+		"soulfire_magnet":
+			s["magnet_radius"] = s["magnet_radius"] * 1.3
+		"move_speed":
+			s["speed"] = s["speed"] * 1.1
 		"aura_radius":
 			s["aura_radius"] = s["aura_radius"] * 1.2
 		"aura_heal":

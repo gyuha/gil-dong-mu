@@ -77,7 +77,7 @@ class Monitor extends Node:
 
 	func _measure_slow(munyeo: Node2D) -> void:
 		if not is_instance_valid(_tracked):
-			_phase = "wait_aura"  # 부적에 죽음 — 다음 잡귀로 재시도
+			_phase = "wait_aura"  # 추적 잡귀 소멸 — 다음 잡귀로 재시도
 			return
 		_moves.append(_tracked.global_position.distance_to(_last_pos))
 		_last_pos = _tracked.global_position

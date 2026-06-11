@@ -67,20 +67,38 @@ func _roll_ids(seed_value: int) -> Array:
 	return ids
 
 
+# --- 무녀 풀 서포트 전용(ADR-0003) ---
+
+
+func test_munyeo_pool_is_support_only_seven() -> void:
+	var pool := DraftPool.munyeo_pool()
+	assert_eq(pool.size(), 7)
+	var allowed := {
+		"repel_radius": true, "soulfire_magnet": true, "move_speed": true,
+		"aura_radius": true, "aura_heal": true,
+		"mp_mastery": true, "command_range": true,
+	}
+	for option in pool:
+		assert_true(allowed.has(option["id"]),
+				"무녀 풀에 서포트 외 선택지: " + str(option["id"]))
+
+
 # --- 업그레이드 적용 수치 ---
 
 
-func test_apply_talisman_count() -> void:
-	assert_eq(DraftPool.apply({"talisman_count": 1}, "talisman_count")["talisman_count"], 2)
+func test_apply_repel_radius() -> void:
+	var stats := DraftPool.apply({"repel_radius": 160.0}, "repel_radius")
+	assert_almost_eq(stats["repel_radius"], 200.0)
 
 
-func test_apply_talisman_pierce() -> void:
-	assert_eq(DraftPool.apply({"talisman_pierce": 0}, "talisman_pierce")["talisman_pierce"], 1)
+func test_apply_soulfire_magnet() -> void:
+	var stats := DraftPool.apply({"magnet_radius": 130.0}, "soulfire_magnet")
+	assert_almost_eq(stats["magnet_radius"], 169.0)
 
 
-func test_apply_talisman_cooldown() -> void:
-	var stats := DraftPool.apply({"attack_cooldown": 0.7}, "talisman_cooldown")
-	assert_almost_eq(stats["attack_cooldown"], 0.595)
+func test_apply_move_speed() -> void:
+	var stats := DraftPool.apply({"speed": 220.0}, "move_speed")
+	assert_almost_eq(stats["speed"], 242.0)
 
 
 func test_apply_aura_radius() -> void:
@@ -129,14 +147,14 @@ func test_apply_comp_range() -> void:
 
 
 func test_apply_does_not_mutate_input() -> void:
-	var input := {"talisman_count": 1}
-	DraftPool.apply(input, "talisman_count")
-	assert_eq(input["talisman_count"], 1)
+	var input := {"repel_radius": 160.0}
+	DraftPool.apply(input, "repel_radius")
+	assert_almost_eq(input["repel_radius"], 160.0)
 
 
 func test_apply_every_pool_option_changes_default_stats() -> void:
 	var munyeo_stats := {
-		"talisman_count": 1, "talisman_pierce": 0, "attack_cooldown": 0.7,
+		"repel_radius": 160.0, "magnet_radius": 130.0, "speed": 220.0,
 		"aura_radius": 140.0, "aura_heal_rate": 5.0,
 		"max_mp": 100.0, "mp_regen_rate": 10.0, "command_range_bonus": 1.0,
 	}

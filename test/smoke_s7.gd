@@ -55,7 +55,7 @@ class Monitor extends Node:
 	func _force_victory(main: Node2D) -> void:
 		if not _forced:
 			if main._kills < 1:
-				return  # 무녀의 자동 부적이 첫 잡귀를 잡을 때까지 대기
+				return  # 동료 화력이 첫 잡귀를 잡을 때까지 대기 (무녀는 공격하지 않는다)
 			_forced = true
 			main._night_time = 179.5
 			print("첫 처치 후 밤 시간 당김 — 만료 0.5초 전 (frame %d)" % _frames)

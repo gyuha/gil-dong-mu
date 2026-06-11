@@ -113,14 +113,17 @@ class Monitor extends Node:
 		_forced = false
 		_phase = "rescue_fail"
 
-	# 활잡이를 강제로 쓰러뜨리고 무녀를 멀리 보내 구출 실패(이탈)를 확인한다.
+	# 활잡이를 강제로 쓰러뜨리고 무녀를 떼어놓아 구출 실패(이탈)를 확인한다.
+	# 무녀는 공격하지 않으므로(ADR-0003) 한곳에 머물면 잡귀에 깎여 죽는다 —
+	# 적과 활잡이를 피해 카이팅하고, 근접한 적은 밀쳐내기(비살상)로 떼어낸다.
 	func _rescue_fail(munyeo: Node2D) -> void:
 		if not _forced:
 			_forced = true
 			_archer.take_damage(9999)
 			print("활잡이 강제 쓰러짐 — 방치해 이탈을 기다린다 (frame %d)" % _frames)
 		if is_instance_valid(_archer) and _archer.downed:
-			_steer(munyeo, _far_corner(_archer.global_position))
+			_steer(munyeo, _kite_dest(munyeo))
+			_panic_repel(munyeo)
 			return
 		if is_instance_valid(_archer):
 			printerr("SMOKE FAIL — 방치했는데 활잡이가 구출돼버림")
@@ -129,18 +132,33 @@ class Monitor extends Node:
 		print("SMOKE OK — 창귀 타깃 + 구출 성공 + 구출 실패 이탈 (frame %d)" % _frames)
 		get_tree().quit(0)
 
-	func _far_corner(from: Vector2) -> Vector2:
-		var corners := [
-			Vector2(40, 40), Vector2(1240, 40), Vector2(40, 680), Vector2(1240, 680),
-		]
-		var best: Vector2 = corners[0]
-		var best_dist := -1.0
-		for corner in corners:
-			var dist: float = from.distance_to(corner)
-			if dist > best_dist:
-				best_dist = dist
-				best = corner
-		return best
+	# 회피 목적지 — 가까운 적들과 활잡이(구출 반경 침범 금지)의 반발 벡터 합으로 정한다.
+	func _kite_dest(munyeo: Node2D) -> Vector2:
+		var push := Vector2.ZERO
+		for enemy in get_tree().get_nodes_in_group("enemy"):
+			var away: Vector2 = munyeo.global_position - enemy.global_position
+			if away.length() < 220.0:
+				push += away.normalized() * (220.0 - away.length())
+		if is_instance_valid(_archer):
+			var from_archer: Vector2 = munyeo.global_position - _archer.global_position
+			if from_archer.length() < 150.0:
+				push += from_archer.normalized() * 300.0
+		if push == Vector2.ZERO:
+			return munyeo.global_position  # 위협 없음 — 제자리 대기
+		var dest: Vector2 = munyeo.global_position + push.normalized() * 200.0
+		# 벽 구석에 몰리지 않게 중앙 쪽으로 보정
+		dest.x = clampf(dest.x, 120.0, 1160.0)
+		dest.y = clampf(dest.y, 120.0, 600.0)
+		return dest
+
+	# 적이 코앞이면 스페이스 — 밀쳐내기로 거리를 벌린다(비살상, MP 소비).
+	func _panic_repel(munyeo: Node2D) -> void:
+		var close := false
+		for enemy in get_tree().get_nodes_in_group("enemy"):
+			if munyeo.global_position.distance_to(enemy.global_position) < 70.0:
+				close = true
+				break
+		_set_key(KEY_SPACE, close)
 
 	func _steer(munyeo: Node2D, dest: Vector2) -> void:
 		var dir := dest - munyeo.global_position
