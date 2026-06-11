@@ -2,6 +2,8 @@
 # 어그로 반경 안에 화랑이 있으면 화랑을 우선 추적한다(근접 탱커의 어그로).
 extends Node2D
 
+signal died  # 처치 통계용 — main이 받아 센다(S7)
+
 const Soulfire = preload("res://scripts/soulfire.gd")
 const Targeting = preload("res://scripts/logic/targeting.gd")
 
@@ -61,6 +63,7 @@ func _die() -> void:
 	soulfire.position = position
 	soulfire.magnet_target = target
 	get_parent().add_child(soulfire)
+	died.emit()
 	queue_free()
 
 

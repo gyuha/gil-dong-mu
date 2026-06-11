@@ -3,6 +3,8 @@
 # 쓰러진 동료는 "companion" 그룹에서 빠지므로 자동으로 표적에서 제외된다.
 extends Node2D
 
+signal died  # 처치 통계용 — main이 받아 센다(S7)
+
 const Soulfire = preload("res://scripts/soulfire.gd")
 const ChanggwiAi = preload("res://scripts/logic/changgwi_ai.gd")
 
@@ -65,6 +67,7 @@ func _die() -> void:
 	soulfire.magnet_target = munyeo
 	soulfire.xp_value = SOULFIRE_VALUE
 	get_parent().add_child(soulfire)
+	died.emit()
 	queue_free()
 
 

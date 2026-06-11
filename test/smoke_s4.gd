@@ -32,16 +32,16 @@ class Monitor extends Node:
 
 	func _process(_delta: float) -> void:
 		_frames += 1
-		if get_tree().paused:  # 드래프트(S5) — 첫 선택지를 골라 재개
-			var ui: CanvasLayer = get_node_or_null("/root/Main/DraftUI")
-			if ui != null and ui.visible:
-				ui.buttons[0].pressed.emit()
-			return
-		if _frames > MAX_FRAMES:
+		if _frames > MAX_FRAMES:  # pause 분기보다 먼저 — 결과 화면(S7) 정지에서 행 방지
 			printerr("SMOKE FAIL — 제한 프레임 초과 (phase %s, arrow %s, melee %s)" % [
 				_phase, str(_arrow_seen), str(_melee_seen),
 			])
 			get_tree().quit(1)
+			return
+		if get_tree().paused:  # 드래프트(S5) — 첫 선택지를 골라 재개
+			var ui: CanvasLayer = get_node_or_null("/root/Main/DraftUI")
+			if ui != null and ui.visible:
+				ui.buttons[0].pressed.emit()
 			return
 		var munyeo: Node2D = get_node_or_null("/root/Main/Munyeo")
 		if munyeo == null:
