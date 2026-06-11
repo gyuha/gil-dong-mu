@@ -26,8 +26,16 @@ class Monitor extends Node:
 	var _check_wait := 0
 	var _companions_removed := false
 
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS  # 드래프트 일시정지 중에도 동작
+
 	func _process(_delta: float) -> void:
 		_frames += 1
+		if get_tree().paused:  # 드래프트(S5) — 첫 선택지를 골라 재개
+			var ui: CanvasLayer = get_node_or_null("/root/Main/DraftUI")
+			if ui != null and ui.visible:
+				ui.buttons[0].pressed.emit()
+			return
 		# S4부터 배치되는 동료는 첫 프레임에 제거 — 이 스모크는 무녀 단독 오라·밀쳐내기
 		# 검증이 목적이고, 동료가 있으면 잡귀가 오라에 살아서 도달하지 못한다.
 		if not _companions_removed:
@@ -56,7 +64,7 @@ class Monitor extends Node:
 		for enemy in get_tree().get_nodes_in_group("japgwi"):
 			var dist: float = munyeo.global_position.distance_to(enemy.global_position)
 			# 접촉 정지 전·오라 안 구간에서 추적 시작
-			if dist <= munyeo.AURA_RADIUS and dist > 60.0:
+			if dist <= munyeo.aura_radius and dist > 60.0:
 				_tracked = enemy
 				_last_pos = enemy.global_position
 				_moves.clear()

@@ -1,11 +1,15 @@
 # 동료 공통 — 자율 전투(타깃 선정→추적→공격), 명령 파라미터 반영, 후퇴·추종, 경험치·레벨.
 # 구체 수치·공격 방식은 서브클래스(화랑/활잡이)가 정한다.
 # 쓰러짐(downed)·구출은 S6 — 여기서는 HP 0이면 그 밤에서 이탈(소멸)한다.
+# 레벨업 시 leveled_up 시그널 — main이 받아 드래프트 큐에 적재한다(S5).
 extends Node2D
+
+signal leveled_up(from_level: int, to_level: int)
 
 const CompanionAi = preload("res://scripts/logic/companion_ai.gd")
 const Command = preload("res://scripts/logic/command.gd")
 const Experience = preload("res://scripts/logic/experience.gd")
+const DraftPool = preload("res://scripts/logic/draft_pool.gd")
 
 const RADIUS := 12.0
 const ARENA := Vector2(1280, 720)
@@ -44,9 +48,11 @@ func _process(delta: float) -> void:
 	var positions: Array = []
 	for enemy in enemies:
 		positions.append(enemy.global_position)
+	# 명령 강화(무녀 드래프트) — 교전·추적 범위 배율.
+	var range_bonus: float = munyeo.command_range_bonus
 	var idx := CompanionAi.select_target(
 		global_position, munyeo.global_position, positions,
-		params["engage_range"], params["leash"],
+		params["engage_range"] * range_bonus, params["leash"] * range_bonus,
 	)
 	if idx == -1:
 		_move_toward(munyeo.global_position, params["follow_distance"], delta)
@@ -76,10 +82,30 @@ func heal(amount: float) -> void:
 
 func gain_xp(amount: int) -> void:
 	var result := Experience.apply_xp(level, xp, amount)
-	if result["level"] > level:
-		print("%s 레벨 업! Lv %d" % [display_name, result["level"]])
+	var from_level := level
 	level = result["level"]
 	xp = result["xp"]
+	if level > from_level:
+		leveled_up.emit(from_level, level)
+
+
+# 드래프트 선택 적용 — 현재 수치를 DraftPool.apply 에 통과시켜 되쓴다.
+func apply_draft_option(option_id: String) -> void:
+	var s := DraftPool.apply(draft_stats(), option_id)
+	hp += s["max_hp"] - max_hp  # 최대 HP 증가분만큼 즉시 회복
+	max_hp = s["max_hp"]
+	attack_damage = s["attack_damage"]
+	attack_cooldown = s["attack_cooldown"]
+	speed = s["speed"]
+	attack_range = s["attack_range"]
+
+
+func draft_stats() -> Dictionary:
+	return {
+		"max_hp": max_hp, "attack_damage": attack_damage,
+		"attack_cooldown": attack_cooldown, "speed": speed,
+		"attack_range": attack_range,
+	}
 
 
 func _move_toward(dest: Vector2, stop_distance: float, delta: float) -> void:

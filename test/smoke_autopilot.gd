@@ -9,6 +9,10 @@ var _frames := 0
 var _held := {}  # physical keycode → pressed
 
 
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # 드래프트 일시정지 중에도 동작
+
+
 func _process(_delta: float) -> void:
 	_frames += 1
 	var munyeo: Node2D = get_node_or_null("/root/Main/Munyeo")
@@ -24,7 +28,16 @@ func _process(_delta: float) -> void:
 		printerr("SMOKE FAIL — Lv 2 미도달 (xp %d)" % munyeo.xp)
 		get_tree().quit(1)
 		return
+	if get_tree().paused:  # 드래프트(S5) — 첫 선택지를 골라 재개
+		_resolve_draft()
+		return
 	_steer(munyeo)
+
+
+func _resolve_draft() -> void:
+	var ui: CanvasLayer = get_node_or_null("/root/Main/DraftUI")
+	if ui != null and ui.visible:
+		ui.buttons[0].pressed.emit()
 
 
 func _steer(munyeo: Node2D) -> void:
