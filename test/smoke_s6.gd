@@ -42,6 +42,10 @@ class Monitor extends Node:
 		var munyeo: Node2D = get_node_or_null("/root/Main/Munyeo")
 		if munyeo == null:
 			return
+		# 검증 대상은 구출 배선이지 무녀 생존이 아니다(헤더 참고 — 압박 자연 발생은 수동 검증).
+		# 적 밀도 2배(S5) + 비공격 무녀 조합에서 잡귀 접촉 누적사로 밤이 패배 종료되어
+		# 결과 화면 정지에 갇히는 플레이크를 막기 위해 무녀 HP를 채워 유지한다.
+		munyeo.hp = munyeo.max_hp
 		_capture_companions()
 		if not _captured:
 			return

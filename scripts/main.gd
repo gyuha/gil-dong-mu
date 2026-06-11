@@ -17,13 +17,8 @@ const DraftUi = preload("res://scripts/draft_ui.gd")
 const ResultUi = preload("res://scripts/result_ui.gd")
 
 # 스폰 곡선 — 밤이 깊어질수록 주기가 줄고(잡귀는 수도 늘어) 압박이 세진다.
-const JAPGWI_BASE_INTERVAL := 1.5
-const JAPGWI_MIN_INTERVAL := 0.6
-const JAPGWI_BASE_BATCH := 1
-const JAPGWI_MAX_BATCH := 3
+# 곡선 상수는 SpawnCurve(scripts/logic/spawn_curve.gd) 기준선을 쓴다.
 const CHANGGWI_FIRST_DELAY := 10.0  # 첫 창귀까지 여유 — 초반에 전선이 자리잡을 시간
-const CHANGGWI_BASE_INTERVAL := 8.0
-const CHANGGWI_MIN_INTERVAL := 4.0
 const SPAWN_MARGIN := 40.0
 const ARENA := Vector2(1280, 720)
 const DRAFT_CHOICES := 3
@@ -81,17 +76,20 @@ func _process(delta: float) -> void:
 	_spawn_timer -= delta
 	if _spawn_timer <= 0.0:
 		_spawn_timer = SpawnCurve.interval(
-			JAPGWI_BASE_INTERVAL, JAPGWI_MIN_INTERVAL, _night_time, Night.DURATION,
+			SpawnCurve.JAPGWI_BASE_INTERVAL, SpawnCurve.JAPGWI_MIN_INTERVAL,
+			_night_time, Night.DURATION,
 		)
 		var batch := SpawnCurve.batch_count(
-			JAPGWI_BASE_BATCH, JAPGWI_MAX_BATCH, _night_time, Night.DURATION,
+			SpawnCurve.JAPGWI_BASE_BATCH, SpawnCurve.JAPGWI_MAX_BATCH,
+			_night_time, Night.DURATION,
 		)
 		for i in batch:
 			_spawn_japgwi()
 	_changgwi_timer -= delta
 	if _changgwi_timer <= 0.0:
 		_changgwi_timer = SpawnCurve.interval(
-			CHANGGWI_BASE_INTERVAL, CHANGGWI_MIN_INTERVAL, _night_time, Night.DURATION,
+			SpawnCurve.CHANGGWI_BASE_INTERVAL, SpawnCurve.CHANGGWI_MIN_INTERVAL,
+			_night_time, Night.DURATION,
 		)
 		_spawn_changgwi()
 	var text := "남은 시간 %s   HP %d/%d   MP %d/%d   Lv %d   XP %d/%d   혼불 %d   명령[1~4] %s" % [
