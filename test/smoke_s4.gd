@@ -20,11 +20,14 @@ class Monitor extends Node:
 	const MAX_FRAMES := 18000  # 고정 60fps 기준 300 게임초
 	const DEADZONE := 8.0
 	const RALLY_MARGIN := 20.0
-	# 종전 '주변' leash(260)보다 확실히 먼 적 — 기본 돌격 성향이어야만 닿는다.
-	const FAR_CHARGE_DISTANCE := 400.0
+	# 종전 '주변' leash(260)+공격사거리(~38)로는 닿을 수 없는 거리 — 기본 돌격 성향이어야만 닿는다.
+	# (400은 관찰이 운에 좌우돼 플레이키 — 증명에 충분한 최소+여유로 조정)
+	const FAR_CHARGE_DISTANCE := 340.0
 
 	var _frames := 0
-	var _phase := "level_companion"  # level_companion → rally → check_rally
+	# observe_charge: 무녀를 정지시켜 두고 동료의 원거리 돌격을 관찰 — 무녀가 혼불을
+	# 쫓아 전장을 따라다니면 교전이 늘 무녀 근처가 되어 관찰이 운에 좌우된다(플레이크).
+	var _phase := "observe_charge"  # observe_charge → level_companion → rally → check_rally
 	var _held := {}
 	var _sweep_seen := false
 	var _melee_seen := false
@@ -57,9 +60,19 @@ class Monitor extends Node:
 			])
 			get_tree().quit(1)
 			return
+		# 생존 고정 — 이 스모크의 검증 대상(분배·명령·성향 배선)과 직교.
+		# 기본 돌격(leash 900) + 2배 밀도에서는 동료가 포위돼 쓰러질 수 있는데
+		# 자동 조종은 구출하지 않아 이탈→플레이크가 된다(smoke_s6 무녀 HP 고정과 같은 선례).
+		munyeo.hp = munyeo.max_hp
+		for companion in companions:
+			companion.hp = companion.max_hp
 		_observe_traits(companions)
 		_observe_far_charge(munyeo, companions)
 		match _phase:
+			"observe_charge":
+				_release_all()  # 무녀 정지 — 적이 다가오고 동료가 멀리 마중 나가게
+				if _charge_seen:
+					_phase = "level_companion"
 			"level_companion":
 				_level_companion(munyeo, companions)
 			"rally":
