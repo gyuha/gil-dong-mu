@@ -21,11 +21,34 @@ func test_leash_order_aggressive_widest_defensive_narrow() -> void:
 	assert_true(nearby["leash"] > defensive["leash"], "주변 leash가 방어적보다 넓어야 함")
 
 
-func test_engage_range_aggressive_wider_than_nearby() -> void:
-	assert_true(
-		Command.params(Command.AGGRESSIVE)["engage_range"]
-		> Command.params(Command.NEARBY)["engage_range"],
-	)
+func test_engage_range_order_aggressive_nearby_defensive() -> void:
+	var nearby: float = Command.params(Command.NEARBY)["engage_range"]
+	var aggressive: float = Command.params(Command.AGGRESSIVE)["engage_range"]
+	var defensive: float = Command.params(Command.DEFENSIVE)["engage_range"]
+	assert_true(aggressive > nearby, "공격적 engage_range가 주변보다 넓어야 함")
+	assert_true(nearby > defensive, "주변 engage_range가 방어적보다 넓어야 함")
+
+
+func test_nearby_default_charges_far_enemies() -> void:
+	# 기본 '주변에서 싸워'부터 적극 돌격 — 화면 절반 이상을 탐지·추격한다.
+	var nearby := Command.params(Command.NEARBY)
+	assert_almost_eq(nearby["engage_range"], 700.0)
+	assert_almost_eq(nearby["leash"], 900.0)
+
+
+func test_aggressive_leash_covers_whole_arena() -> void:
+	# 공격적 = 사실상 무제한 추격. 경기장 대각선(약 1469)을 넉넉히 넘는다.
+	var aggressive := Command.params(Command.AGGRESSIVE)
+	assert_true(aggressive["leash"] >= 1500.0, "공격적 leash는 경기장 전체를 덮어야 함")
+	assert_true(aggressive["engage_range"] >= 1500.0,
+		"공격적 engage_range는 경기장 전체를 덮어야 함")
+
+
+func test_defensive_is_old_nearby_level() -> void:
+	# 방어적 = 종전 '주변' 수준의 소극 교전.
+	var defensive := Command.params(Command.DEFENSIVE)
+	assert_almost_eq(defensive["engage_range"], 340.0)
+	assert_almost_eq(defensive["leash"], 260.0)
 
 
 func test_rally_disables_engagement() -> void:
