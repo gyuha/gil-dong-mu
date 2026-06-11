@@ -14,7 +14,7 @@ func _initialize() -> void:
 
 	for file_name in _collect_test_files():
 		var script: GDScript = load(TEST_DIR + "/" + file_name)
-		if script == null:
+		if script == null or not script.can_instantiate():
 			failed.append(file_name + " :: failed to load script")
 			continue
 		var case = script.new()
